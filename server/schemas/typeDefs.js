@@ -18,6 +18,7 @@ const typeDefs = gql`
         createdAt: String
         username: String
         reactionCount: Int
+        reactions: [Reaction]
     }
 
     type Reaction {

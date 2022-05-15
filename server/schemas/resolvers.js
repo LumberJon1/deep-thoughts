@@ -7,9 +7,9 @@ const {signToken} = require("../utils/auth");
 
 const resolvers = {
     Query: {
-        me: async (parent, args) => {
+        me: async (parent, args, context) => {
             if (context.user) {
-                const userData = await User.findOne({})
+                const userData = await User.findOne({_id: context.user._id})
                 .select("-__v -password")
                 .populate("thoughts")
                 .populate("friends");
@@ -18,8 +18,9 @@ const resolvers = {
             }
             throw new AuthenticationError("Not Logged In");
         },
-        thoughts: async () => {
-            return Thought.find().sort({createdAt: -1});
+        thoughts: async (parent, {username}) => {
+            const params = username ? {username} : {};
+            return Thought.find(params).sort({createdAt: -1});
         },
         thought: async (parent, {_id}) => {
             return Thought.findOne({_id})
@@ -44,7 +45,7 @@ const resolvers = {
             const user = await User.create(args);
             const token = signToken(user);
 
-            return user;
+            return {token, user};
         },
         login: async (parent, {email, password}) => {
             const user = await User.findOne({email});
@@ -60,7 +61,7 @@ const resolvers = {
             }
 
             const token = signToken(user);
-            return user;
+            return {token, user};
         },
         addThought: async (parent, args, context) => {
             if (context.user) {
@@ -80,9 +81,9 @@ const resolvers = {
         addReaction: async (parent, { thoughtId, reactionBody }, context) => {
         if (context.user) {
             const updatedThought = await Thought.findOneAndUpdate(
-            { _id: thoughtId },
-            { $push: { reactions: { reactionBody, username: context.user.username } } },
-            { new: true, runValidators: true }
+                { _id: thoughtId },
+                { $push: { reactions: { reactionBody, username: context.user.username } } },
+                { new: true, runValidators: true }
             );
         
             return updatedThought;
